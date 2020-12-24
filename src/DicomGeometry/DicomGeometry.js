@@ -5,10 +5,15 @@ import Matrix from '../LinearAlgebra/Matrix'
 export default class DicomGeometry {
     constructor(image) {
       this.image = image
+      console.group("DicomGeometry for :", image)
       // Image Position Patient - x, y, z of top hand corner
       const ipp = this.image.data.string('x00200032').split('\\').map(v => parseFloat(v)) 
+      console.log("IPP =")
+      console.table(ipp)
       // Image Orientation Patient - x, y, z of direction cosines of the first row and x, y, z of direction cosines of the first column
       const iop = this.image.data.string('x00200037').split('\\').map(v => parseFloat(v)) 
+      console.log("IOP =")
+      console.table(iop)
 
       const pixelSpacing = this.image.data.string('x00280030').split('\\').map(v => parseFloat(v)) 
       this.spacingY = pixelSpacing[0]
@@ -22,6 +27,8 @@ export default class DicomGeometry {
 
       this.rowDir = new Vector(iop[0], iop[1], iop[2]) 
       this.colDir = new Vector(iop[3], iop[4], iop[5]) 
+      // console.log("rowDir = ", this.rowDir)
+      // console.log("colDir = ", this.colDir)
 
       this.nrmDir = this.rowDir.crossProduct(this.colDir)
 
@@ -45,7 +52,8 @@ export default class DicomGeometry {
         this.orientation = 'coronal'
       else if (p.z === 1) 
         this.orientation = 'axial'   
-
+      
+      console.groupEnd()
     }
 
 }

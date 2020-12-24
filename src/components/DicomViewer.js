@@ -1320,12 +1320,12 @@ class DicomViewer extends React.Component {
     //     http://www.dclunie.com/dicom3tools/workinprogress/dcpost.cc
     // 
     referenceLinesBuild = (srcImage) => {
-      //console.log('referenceLinesBuild - srcImage: ', srcImage)
+      console.log('referenceLinesBuild - srcImage: ', srcImage)
       
       this.referenceLines.dst = new DicomGeometry(this.image)
-      //console.log('this.referenceLines.dst: ', this.referenceLines.dst)
+      console.log('this.referenceLines.dst: ', this.referenceLines.dst)
       this.referenceLines.src = new DicomGeometry(srcImage)
-      //console.log('this.referenceLines.src: ', this.referenceLines.src)
+      console.log('this.referenceLines.src: ', this.referenceLines.src)
 
       this.referenceLines.isReferenceLine = this.referenceLines.dst.orientation !== undefined &&
                                             this.referenceLines.src.orientation !== undefined && 
@@ -1338,8 +1338,12 @@ class DicomViewer extends React.Component {
     }
 
     referenceLinesBuildLine = () => {
+      console.log(">>> referenceLinesBuildLine >>>")
       const dst = this.referenceLines.dst
       const src = this.referenceLines.src
+      // ref line dst and src are DicomGeometry objects
+      // console.log("ref line dst: ", dst)
+      // console.log("ref line src: ", src)
 
       const nP = dst.nrmDir.dotProduct(dst.topLeft)
       const nA = dst.nrmDir.dotProduct(src.topLeft)
@@ -1347,31 +1351,40 @@ class DicomViewer extends React.Component {
       const nC = dst.nrmDir.dotProduct(src.bottomRight)
       const nD = dst.nrmDir.dotProduct(src.bottomLeft)
 
+      console.log("nP, nA, nB, nC, nD = ", nP, nA, nB, nC, nD)
+
       let list = []
 
       if (!areEqual(nB, nA)) {
         const t = (nP - nA) / (nB - nA)
+        console.log("(nP - nA) / (nB - nA) = ", t)
         if (t > 0 && t <= 1) 
           list.push(src.topLeft.add((src.topRight.sub(src.topLeft)).mul(t)))
       }
 
       if (!areEqual(nC, nB)) { 
         const t = (nP - nB) / (nC - nB)
+        console.log("(nP - nB) / (nC - nB) = ", t)
         if (t > 0 && t <= 1)
           list.push(src.topRight.add((src.bottomRight.sub(src.topRight)).mul(t)))
       }
         
       if (!areEqual(nD, nC)) { 
         const t = (nP - nC) / (nD - nC)
+        console.log("(nP - nC) / (nD - nC) = ", t)
         if (t > 0 && t <= 1)
           list.push(src.bottomRight.add((src.bottomLeft.sub(src.bottomRight)).mul(t)))
       }
 
       if (!areEqual(nA, nD)) { 
         const t = (nP - nD) / (nA - nD)
+        console.log("(nP - nD) / (nA - nD) = ", t)
         if (t > 0 && t <= 1)
           list.push(src.bottomLeft.add((src.topLeft.sub(src.bottomLeft)).mul(t)))
       }
+
+      console.log("refLine builder list = ")
+      console.table(list)
 
       // the destinationplane should have been crossed exactly two times
       if (list.length !== 2)
@@ -1382,6 +1395,7 @@ class DicomViewer extends React.Component {
         startPoint: this.transformDstPatientPointToImage(list[0]),
         endPoint:   this.transformDstPatientPointToImage(list[1])
       }
+      console.table(p)
       return p      
     }
 
@@ -1392,9 +1406,13 @@ class DicomViewer extends React.Component {
         [p.z], 
         [1]
       )
+      console.log("v = ", v)
       const transformed = this.referenceLines.dst.transformRcsToImage.multiply(v)
+      console.log("transformed = ", transformed)
       // validation, if the point is within the image plane, then the z-component of the transformed point should be zero
       const point = new Point(Math.round(transformed.get(0,0)), Math.round(transformed.get(1,0)))
+      console.log("transformed.get(0,0) = ", transformed.get(0,0))
+      console.log("transformed.get(1,0) = ", transformed.get(1,0))
       return point
     }
 
@@ -1421,20 +1439,36 @@ class DicomViewer extends React.Component {
         dst.nrmDir.toArray()
       )
 
+      console.log("rotation matrix = dst_{row, col, nrm} =>")
+      console.log(rotation)
+
       for (let i = 0; i < 4; i++) {            
           // move everything to origin of target
           pos[i] = pos[i].add(Point.zero.sub(dst.topLeft))
 
+          console.log(i, "++++++++++++++++++")
+          console.log("after shift to origin, before rotation:")
+          console.log("pos[i] -> ", pos[i])
+          // console.log("pos[i].toMatrix() = ", pos[i].toMatrix())
           // The rotation is easy ... just rotate by the row, col and normal vectors ...
           const m = rotation.multiply(pos[i].toMatrix())
+          console.log("------------------")
+          console.log("before rounding, m = ", m)
           pos[i] = new Point(Math.round(m.get(0,0)), Math.round(m.get(1,0)), Math.round(m.get(2,0))) 
 
           // DICOM coordinates are center of pixel 1\1
+          console.log("pos[i].x = ", pos[i].x)
+          console.log("pos[i].y = ", pos[i].y)
+          console.log("dst.spacingY, X = ", dst.spacingY, dst.spacingX)
+          console.log("pos[i].x / dst.spacingY = ", pos[i].x / dst.spacingY)
+          console.log("pos[i].y / dst.spacingX = ", pos[i].y / dst.spacingX)
+          console.log("pos[i].x / dst.spacingY + 0.5 = ", pos[i].x / dst.spacingY + 0.5)
+          console.log("pos[i].y / dst.spacingX + 0.5 = ", pos[i].y / dst.spacingX + 0.5)
           pixel[i] = new Point(Math.trunc(pos[i].x / dst.spacingY + 0.5),
                                Math.trunc(pos[i].y / dst.spacingX + 0.5))
       }         
 
-      //console.log('referenceLinesBuildPlane: ', pixel)
+      console.log('referenceLinesBuildPlane: ', pixel)
       return pixel
     }
 
@@ -1448,16 +1482,21 @@ class DicomViewer extends React.Component {
 
       this.referenceLines.line = this.referenceLinesBuildLine()
 
+      // =========== Yellow Solid Line
+      // from referenceLinesBuildLine()
       const line = this.referenceLines.line
       
       ctxH.beginPath()
       ctxH.setLineDash([])
+      // yellow solid line
       ctxH.strokeStyle = 'rgba(255, 255, 51, 0.5)'
       ctxH.moveTo(line.startPoint.x, line.startPoint.y)
       ctxH.lineTo(line.endPoint.x, line.endPoint.y)
       ctxH.lineWidth = 1
       ctxH.stroke()
 
+      // =========== Blue Dashed Plane
+      // from referenceLinesBuildPlane()
       const plane = this.referenceLines.plane
 
       const d = Math.max(this.referenceLines.dst.rows, this.referenceLines.dst.cols) / 30
@@ -1471,6 +1510,7 @@ class DicomViewer extends React.Component {
 
       ctxH.beginPath()
       ctxH.setLineDash([3, 3])
+      // blue dashed plane
       ctxH.strokeStyle = 'rgba(135, 206, 250, 0.5)'
       ctxH.moveTo(plane[0].x, plane[0].y)
       ctxH.lineTo(plane[1].x, plane[1].y)

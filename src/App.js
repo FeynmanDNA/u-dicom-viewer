@@ -133,7 +133,8 @@ import './App.css'
 
 //import * as cornerstoneTools from "cornerstone-tools"
 
-log()
+// enable console log by disabling the custom log()
+// log()
 
 //localStorage.setItem("debug", "cornerstoneTools")
 
